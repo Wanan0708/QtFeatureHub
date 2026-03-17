@@ -1,0 +1,55 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "CMake: build",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"${workspaceFolder}/build",
+				"--config",
+				"Debug"
+			],
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/c"
+					]
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"problemMatcher": [
+				"$msCompile"
+			]
+		},
+		{
+			"label": "Run QtFeatureHub executable",
+			"type": "process",
+			"command": "${workspaceFolder}/build/src/QtFeatureHub.exe",
+			"options": {
+				"cwd": "${workspaceFolder}/build/src",
+				"env": {
+					"PATH": "C:/msys64/mingw64/bin;E:/Softwore/Qt5.14.2/5.14.2/mingw73_64/bin;${env:PATH}"
+				}
+			},
+			"isBackground": false,
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			}
+		}
+	]
+}

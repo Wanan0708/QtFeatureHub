@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/images">
+        <file alias="open_globe_title.png">../image/open_globe_title.png</file>
+    </qresource>
+</RCC>

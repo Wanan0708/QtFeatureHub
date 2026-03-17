@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch (CMake Tools)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            "cwd": "${command:cmake.launchTargetDirectory}",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "C:/msys64/mingw64/bin;E:/Softwore/Qt5.14.2/5.14.2/mingw73_64/bin;${env:PATH}"
+                }
+            ],
+            "stopAtEntry": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "E:/Softwore/Qt5.14.2/Tools/mingw730_64/bin/gdb.exe",
+            "externalConsole": true,
+            "preLaunchTask": "CMake: build",
+            "visualizerFile": "c:\\Users\\chd\\AppData\\Roaming\\Code\\User\\workspaceStorage\\d5502f553a6dd02758569d0423299e6a\\tonka3000.qtvsctools\\qt.natvis.xml"
+        }
+    ]
+}

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TestControlsWindow</class>
+ <widget class="QMainWindow" name="TestControlsWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <layout class="QHBoxLayout" name="row1">
+      <item>
+       <widget class="QToolButton" name="toolButton_tool">
+        <property name="text">
+         <string>Tool Button</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCommandLinkButton" name="commandLinkButton_cmd">
+        <property name="text">
+         <string>Command Link</string>
+        </property>
+        <property name="description">
+         <string>说明</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QDialogButtonBox" name="dialogButtonBox_dlg">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="standardButtons">
+         <set>QDialogButtonBox::Ok|QDialogButtonBox::Cancel</set>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="row2">
+      <item>
+       <widget class="QToolBox" name="toolBox_toolbox"/>
+      </item>
+      <item>
+       <widget class="QTabWidget" name="tabWidget_tabs"/>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QMdiArea" name="mdiArea_mdi"/>
+    </item>
+        <item>
+         <layout class="QHBoxLayout" name="row4">
+            <item>
+             <widget class="QLabel" name="label_ax">
+                <property name="text">
+                 <string>QAxWidget (if available)</string>
+                </property>
+             </widget>
+            </item>
+      <item>
+       <widget class="QFontComboBox" name="fontCombo_font"/>
+      </item>
+      <item>
+       <widget class="QTimeEdit" name="timeEdit_time"/>
+      </item>
+      <item>
+       <widget class="QDial" name="dial_dial"/>
+      </item>
+     </layout>
+    </item>
+    </layout>
+  </widget>
+  <widget class="QDockWidget" name="dockWidget_info">
+    <property name="windowTitle">
+     <string>Info Dock</string>
+    </property>
+    <attribute name="dockWidgetArea">
+     <enum>Qt::RightDockWidgetArea</enum>
+    </attribute>
+    <widget class="QWidget" name="dockWidgetContents">
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+        <widget class="QLabel" name="label_dock">
+         <property name="text">
+          <string>Dock widget content</string>
+         </property>
+        </widget>
+      </item>
+     </layout>
+    </widget>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

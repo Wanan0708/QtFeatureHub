@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>PdfViewer</class>
+ <widget class="QWidget" name="PdfViewer">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QHBoxLayout" name="topLayout">
+     <item>
+      <widget class="QPushButton" name="openButton">
+       <property name="text">
+        <string>打开 PDF</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+            <widget class="QPushButton" name="printButton">
+       <property name="text">
+                <string>打印</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+            <spacer name="toolbarSpacerLeft">
+             <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+       </property>
+             <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+             </property>
+            </spacer>
+     </item>
+     <item>
+            <widget class="QPushButton" name="prevButton">
+       <property name="text">
+                <string>上一页</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+            <widget class="QSpinBox" name="pageSpinBox">
+             <property name="minimum">
+                <number>1</number>
+             </property>
+             <property name="maximum">
+                <number>1</number>
+             </property>
+             <property name="buttonSymbols">
+                <enum>QAbstractSpinBox::NoButtons</enum>
+             </property>
+             <property name="alignment">
+                <set>Qt::AlignCenter</set>
+             </property>
+             <property name="minimumSize">
+                <size>
+                 <width>72</width>
+                 <height>0</height>
+                </size>
+             </property>
+            </widget>
+         </item>
+         <item>
+            <widget class="QLabel" name="totalPagesLabel">
+             <property name="minimumSize">
+                <size>
+                 <width>48</width>
+                 <height>0</height>
+                </size>
+             </property>
+             <property name="text">
+                <string>/ 0</string>
+             </property>
+            </widget>
+         </item>
+         <item>
+            <widget class="QPushButton" name="nextButton">
+             <property name="text">
+                <string>下一页</string>
+             </property>
+            </widget>
+         </item>
+         <item>
+            <spacer name="toolbarSpacerRight">
+             <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+             </property>
+            </spacer>
+         </item>
+         <item>
+            <widget class="QPushButton" name="zoomOutButton">
+             <property name="text">
+                <string>-</string>
+             </property>
+            </widget>
+         </item>
+         <item>
+            <widget class="QLabel" name="zoomValueLabel">
+             <property name="minimumSize">
+                <size>
+                 <width>84</width>
+                 <height>0</height>
+                </size>
+             </property>
+             <property name="alignment">
+                <set>Qt::AlignCenter</set>
+             </property>
+             <property name="text">
+                <string>100%</string>
+             </property>
+            </widget>
+         </item>
+         <item>
+            <widget class="QPushButton" name="zoomInButton">
+             <property name="text">
+                <string>+</string>
+             </property>
+            </widget>
+         </item>
+         <item>
+            <widget class="QPushButton" name="resetZoomButton">
+             <property name="text">
+                <string>100%</string>
+             </property>
+            </widget>
+         </item>
+         <item>
+            <widget class="QPushButton" name="fitWidthButton">
+             <property name="checkable">
+                <bool>true</bool>
+             </property>
+             <property name="checked">
+                <bool>true</bool>
+             </property>
+             <property name="text">
+                <string>适应宽度</string>
+       </property>
+      </widget>
+     </item>
+         <item>
+          <widget class="QPushButton" name="fitPageButton">
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="text">
+            <string>适应整页</string>
+           </property>
+          </widget>
+         </item>
+             <item>
+            <widget class="QPushButton" name="showAllPagesButton">
+             <property name="checkable">
+              <bool>true</bool>
+             </property>
+             <property name="text">
+              <string>显示全部</string>
+             </property>
+            </widget>
+             </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="contentLayout">
+     <item>
+         <layout class="QVBoxLayout" name="thumbnailPanelLayout">
+          <item>
+            <widget class="QLabel" name="thumbnailStatusLabel">
+             <property name="minimumSize">
+               <size>
+                <width>120</width>
+                <height>42</height>
+               </size>
+             </property>
+             <property name="maximumSize">
+               <size>
+                <width>180</width>
+                <height>16777215</height>
+               </size>
+             </property>
+             <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+             </property>
+             <property name="alignment">
+               <set>Qt::AlignCenter</set>
+             </property>
+             <property name="wordWrap">
+               <bool>true</bool>
+             </property>
+             <property name="text">
+               <string>缩略图导航</string>
+             </property>
+            </widget>
+          </item>
+          <item>
+            <widget class="QListWidget" name="thumbnailList">
+             <property name="minimumSize">
+               <size>
+                <width>120</width>
+                <height>0</height>
+               </size>
+             </property>
+             <property name="maximumSize">
+               <size>
+                <width>180</width>
+                <height>16777215</height>
+               </size>
+             </property>
+            </widget>
+          </item>
+         </layout>
+     </item>
+     <item>
+      <widget class="QScrollArea" name="scrollArea">
+       <property name="widgetResizable">
+        <bool>true</bool>
+       </property>
+       <widget class="QWidget" name="scrollAreaWidgetContents">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>780</width>
+          <height>500</height>
+         </rect>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QLabel" name="label_image">
+           <property name="minimumSize">
+            <size>
+             <width>320</width>
+             <height>240</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="scaledContents">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>请选择 PDF 文件</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
