@@ -10,6 +10,7 @@
 #include <QPixmap>
 #include <QPropertyAnimation>
 #include <QResizeEvent>
+#include <QSize>
 #include <QString>
 #include <QStringList>
 #include <QTimer>
@@ -73,6 +74,7 @@ private:
     void requestThumbnailBatch();
     void startThumbnailBatch(const QVector<int> &pageIndexes);
     void handleThumbnailBatchFinished();
+    QSize availablePageViewportSize(bool reserveVerticalScrollbar) const;
     QImage renderPageImage(int pageIndex, double zoomFactor) const;
     void applyPixmapToPageLabel(QLabel *label, const QPixmap &pixmap, const QString &displayMode, bool animateFade);
     void applyLoadingPlaceholder(QLabel *label, int pageIndex, bool compact);

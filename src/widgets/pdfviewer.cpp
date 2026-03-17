@@ -12,6 +12,8 @@
 #include <QLinearGradient>
 #include <QListWidgetItem>
 #include <QMessageBox>
+#include <QMutex>
+#include <QMutexLocker>
 #include <QObject>
 #include <QEasingCurve>
 #include <QPrinter>
@@ -23,6 +25,7 @@
 #include <QScrollBar>
 #include <QSettings>
 #include <QSignalBlocker>
+#include <QStyle>
 #include <QVariantAnimation>
 #include <QWheelEvent>
 #include <QCryptographicHash>
@@ -56,6 +59,15 @@ constexpr double kFastScrollSmoothedVelocityThreshold = 0.9;
 constexpr double kFastScrollBurstVelocityThreshold = 2.4;
 constexpr int kFastScrollEventThreshold = 2;
 constexpr double kScrollVelocityBlendFactor = 0.35;
+constexpr bool kEnableThumbnailRendering = true;
+constexpr bool kEnableAdjacentPrefetch = false;
+constexpr bool kEnableAllPagesBatchRendering = true;
+
+QMutex &popplerRenderMutex()
+{
+    static QMutex mutex;
+    return mutex;
+}
 
 QImage popplerImageToQImage(const poppler::image &image)
 {
@@ -204,6 +216,8 @@ PdfRenderResult renderPdfPage(const QString &filePath, int requestId, int pageIn
     result.pageIndex = pageIndex;
     result.zoomFactor = zoomFactor;
 
+    QMutexLocker locker(&popplerRenderMutex());
+
     const QByteArray encodedFile = QFile::encodeName(filePath);
     std::unique_ptr<poppler::document> document(poppler::document::load_from_file(encodedFile.constData()));
     if (!document) {
@@ -240,6 +254,8 @@ QVector<PdfRenderResult> renderPdfPages(const QString &filePath, int requestId, 
     if (pageIndexes.isEmpty()) {
         return results;
     }
+
+    QMutexLocker locker(&popplerRenderMutex());
 
     const QByteArray encodedFile = QFile::encodeName(filePath);
     std::unique_ptr<poppler::document> document(poppler::document::load_from_file(encodedFile.constData()));
@@ -318,6 +334,8 @@ PdfViewer::PdfViewer(QWidget *parent)
     ui->thumbnailList->setIconSize(QSize(80, 110));
     ui->thumbnailList->setSpacing(6);
     ui->thumbnailList->setUniformItemSizes(true);
+    ui->thumbnailList->setSelectionMode(QAbstractItemView::NoSelection);
+    ui->thumbnailList->setFocusPolicy(Qt::NoFocus);
     ui->thumbnailStatusLabel->setText(tr("缩略图导航"));
     connect(ui->thumbnailList, &QListWidget::currentRowChanged, this, &PdfViewer::on_thumbnailList_currentRowChanged);
     ui->label_image->setAlignment(Qt::AlignCenter);
@@ -358,7 +376,6 @@ void PdfViewer::on_openButton_clicked()
     clearPageCache();
     rebuildThumbnailList();
     loadViewState();
-    requestThumbnailBatch();
     renderCurrentPage();
 }
 
@@ -394,20 +411,25 @@ void PdfViewer::renderCurrentPage()
     }
     if (m_currentPage >= m_doc->pages()) m_currentPage = m_doc->pages() - 1;
 
-    std::unique_ptr<poppler::page> p(m_doc->create_page(m_currentPage));
-    if (!p) {
-        QMessageBox::warning(this, tr("渲染失败"), tr("无法创建页面 %1").arg(m_currentPage + 1));
-        return;
+    poppler::rectf pageRect;
+    {
+        QMutexLocker locker(&popplerRenderMutex());
+        std::unique_ptr<poppler::page> p(m_doc->create_page(m_currentPage));
+        if (!p) {
+            QMessageBox::warning(this, tr("渲染失败"), tr("无法创建页面 %1").arg(m_currentPage + 1));
+            return;
+        }
+        pageRect = p->page_rect();
     }
 
-    const poppler::rectf pageRect = p->page_rect();
     double zoomFactor = m_manualZoomFactor;
+    const QSize availableViewportSize = availablePageViewportSize(m_fitToWidth);
     if (m_fitToWidth && pageRect.width() > 0.0) {
-        const int availableWidth = qMax(160, ui->scrollArea->viewport()->width() - 24);
+        const int availableWidth = qMax(160, availableViewportSize.width());
         zoomFactor = availableWidth / pageRect.width();
     } else if (m_fitToPage && pageRect.width() > 0.0 && pageRect.height() > 0.0) {
-        const int availableWidth = qMax(160, ui->scrollArea->viewport()->width() - 24);
-        const int availableHeight = qMax(160, ui->scrollArea->viewport()->height() - 24);
+        const int availableWidth = qMax(160, availableViewportSize.width());
+        const int availableHeight = qMax(160, availableViewportSize.height());
         zoomFactor = qMin(availableWidth / pageRect.width(), availableHeight / pageRect.height());
     }
     zoomFactor = qBound(kMinZoomFactor, zoomFactor, kMaxZoomFactor);
@@ -415,7 +437,6 @@ void PdfViewer::renderCurrentPage()
     updateNavigationState();
     updateThumbnailSelection();
     saveViewState();
-    requestThumbnailBatch();
 
     if (m_showAllPages) {
         renderAllPages();
@@ -429,6 +450,7 @@ void PdfViewer::renderCurrentPage()
         applyPixmapToPageLabel(ui->label_image, pix, QStringLiteral("highres"), false);
         updateThumbnailForPage(m_currentPage);
         hideExtraPageLabels(1);
+        requestThumbnailBatch();
         requestAdjacentPrefetch();
         return;
     }
@@ -830,6 +852,22 @@ void PdfViewer::resizeEvent(QResizeEvent *event)
     }
 }
 
+QSize PdfViewer::availablePageViewportSize(bool reserveVerticalScrollbar) const
+{
+    QSize availableSize = ui->scrollArea->viewport()->size();
+    const QMargins margins = ui->verticalLayout_2->contentsMargins();
+    availableSize.rwidth() -= margins.left() + margins.right();
+    availableSize.rheight() -= margins.top() + margins.bottom();
+
+    if (reserveVerticalScrollbar && !ui->scrollArea->verticalScrollBar()->isVisible()) {
+        availableSize.rwidth() -= style()->pixelMetric(QStyle::PM_ScrollBarExtent, nullptr, ui->scrollArea);
+    }
+
+    availableSize.rwidth() -= 8;
+    availableSize.rheight() -= 8;
+    return availableSize;
+}
+
 QImage PdfViewer::renderPageImage(int pageIndex, double zoomFactor) const
 {
     if (!m_doc || pageIndex < 0 || pageIndex >= m_doc->pages()) {
@@ -865,7 +903,6 @@ void PdfViewer::applyPixmapToPageLabel(QLabel *label, const QPixmap &pixmap, con
 
     if (QGraphicsOpacityEffect *existingEffect = qobject_cast<QGraphicsOpacityEffect *>(label->graphicsEffect())) {
         label->setGraphicsEffect(nullptr);
-        existingEffect->deleteLater();
     }
 
     if (!animateFade) {
@@ -884,8 +921,12 @@ void PdfViewer::applyPixmapToPageLabel(QLabel *label, const QPixmap &pixmap, con
     connect(animation, &QPropertyAnimation::finished, label, [label, effect]() {
         if (label->graphicsEffect() == effect) {
             label->setGraphicsEffect(nullptr);
+            return;
         }
-        effect->deleteLater();
+
+        if (effect && effect->parent() == label) {
+            effect->deleteLater();
+        }
     });
     animation->start(QAbstractAnimation::DeleteWhenStopped);
 }
@@ -1218,6 +1259,11 @@ void PdfViewer::requestPageRender(int pageIndex, double zoomFactor)
 
 void PdfViewer::scheduleAllPagesBatch(bool immediate)
 {
+    if (!kEnableAllPagesBatchRendering) {
+        m_allPagesBatchTimer.stop();
+        return;
+    }
+
     if (!m_showAllPages || !m_doc || m_currentFile.isEmpty()) {
         m_allPagesBatchTimer.stop();
         return;
@@ -1253,11 +1299,18 @@ void PdfViewer::handleRenderFinished()
 {
     const PdfRenderResult result = m_renderWatcher.result();
     if (result.requestId != m_renderRequestId) {
+        if (m_hasPendingRender) {
+            startPageRender(m_pendingRenderPage, m_pendingRenderZoomFactor);
+        }
         return;
     }
 
     if (result.image.isNull()) {
         QMessageBox::warning(this, tr("渲染失败"), result.errorMessage.isEmpty() ? tr("页面渲染失败") : result.errorMessage);
+        m_doc.reset();
+        m_currentFile.clear();
+        m_currentPage = 0;
+        m_showAllPages = false;
         clearViewer(tr("页面渲染失败"));
         return;
     }
@@ -1266,6 +1319,7 @@ void PdfViewer::handleRenderFinished()
     m_pageCache.insert(cacheKey, result.image);
     rememberCacheKey(cacheKey);
     updateThumbnailForPage(result.pageIndex);
+    requestThumbnailBatch();
 
     if (m_showAllPages) {
         renderAllPages();
@@ -1273,11 +1327,8 @@ void PdfViewer::handleRenderFinished()
 
     if (!m_showAllPages && result.pageIndex == m_currentPage && qFuzzyCompare(result.zoomFactor + 1.0, m_effectiveZoomFactor + 1.0)) {
         const QPixmap pix = QPixmap::fromImage(result.image);
-        ui->label_image->clear();
         ui->label_image->show();
-        ui->label_image->setPixmap(pix);
-        ui->label_image->resize(pix.size());
-        ui->label_image->setMinimumSize(pix.size());
+        applyPixmapToPageLabel(ui->label_image, pix, QStringLiteral("highres"), false);
         hideExtraPageLabels(1);
         requestAdjacentPrefetch();
     }
@@ -1289,6 +1340,10 @@ void PdfViewer::handleRenderFinished()
 
 void PdfViewer::requestAllPagesBatch()
 {
+    if (!kEnableAllPagesBatchRendering) {
+        return;
+    }
+
     if (!m_showAllPages || !m_doc || m_currentFile.isEmpty()) {
         return;
     }
@@ -1374,6 +1429,10 @@ void PdfViewer::handleAllPagesBatchFinished()
 
 void PdfViewer::requestThumbnailBatch()
 {
+    if (!kEnableThumbnailRendering) {
+        return;
+    }
+
     if (!m_doc || m_currentFile.isEmpty() || ui->thumbnailList->count() <= 0) {
         return;
     }
@@ -1459,6 +1518,10 @@ void PdfViewer::handleThumbnailBatchFinished()
 
 void PdfViewer::requestAdjacentPrefetch()
 {
+    if (!kEnableAdjacentPrefetch) {
+        return;
+    }
+
     if (!m_doc || m_currentFile.isEmpty()) {
         return;
     }
@@ -1582,9 +1645,16 @@ void PdfViewer::clearViewer(const QString &message)
     clearPageCache();
     rebuildThumbnailList();
     hideExtraPageLabels(1);
+    stopLoadingPlaceholderAnimation(ui->label_image);
+    ui->label_image->setProperty("pageDisplayMode", QString());
+    ui->label_image->setProperty("loadingPlaceholderKey", QString());
+    if (QGraphicsOpacityEffect *existingEffect = qobject_cast<QGraphicsOpacityEffect *>(ui->label_image->graphicsEffect())) {
+        ui->label_image->setGraphicsEffect(nullptr);
+    }
     ui->label_image->show();
     ui->label_image->setPixmap(QPixmap());
     ui->label_image->setMinimumSize(320, 240);
+    ui->label_image->resize(ui->label_image->minimumSize());
     ui->label_image->setText(message);
     m_effectiveZoomFactor = m_manualZoomFactor;
     updateNavigationState();
@@ -1606,7 +1676,7 @@ void PdfViewer::loadViewState()
                                 kMaxZoomFactor);
     m_fitToWidth = settings.value(QStringLiteral("fitToWidth"), true).toBool();
     m_fitToPage = settings.value(QStringLiteral("fitToPage"), false).toBool();
-    m_showAllPages = settings.value(QStringLiteral("showAllPages"), false).toBool();
+    m_showAllPages = false;
     if (m_fitToWidth && m_fitToPage) {
         m_fitToPage = false;
     }
@@ -1671,7 +1741,6 @@ void PdfViewer::rebuildThumbnailList()
 
     updateThumbnailSelection();
     refreshThumbnailViewportState();
-    requestThumbnailBatch();
 }
 
 void PdfViewer::refreshThumbnailViewportState()
@@ -1682,7 +1751,6 @@ void PdfViewer::refreshThumbnailViewportState()
     }
 
     const QPair<int, int> visibleRange = visiblePageRange();
-    const QColor visibleBackground(225, 239, 255);
     const QColor currentBackground(102, 163, 255);
     const QColor currentForeground(Qt::white);
     const QColor defaultForeground = ui->thumbnailList->palette().color(QPalette::Text);
@@ -1715,9 +1783,6 @@ void PdfViewer::refreshThumbnailViewportState()
         if (isCurrent) {
             item->setBackground(currentBackground);
             item->setForeground(currentForeground);
-        } else if (isVisible) {
-            item->setBackground(visibleBackground);
-            item->setForeground(defaultForeground);
         } else {
             item->setBackground(QBrush());
             item->setForeground(defaultForeground);
@@ -1739,11 +1804,13 @@ void PdfViewer::updateThumbnailSelection()
 {
     QSignalBlocker blocker(ui->thumbnailList);
     if (!m_doc || m_doc->pages() <= 0 || m_currentPage < 0 || m_currentPage >= ui->thumbnailList->count()) {
+        ui->thumbnailList->clearSelection();
         ui->thumbnailList->setCurrentRow(-1);
         return;
     }
 
     ui->thumbnailList->setCurrentRow(m_currentPage);
+    ui->thumbnailList->clearSelection();
     if (QListWidgetItem *item = ui->thumbnailList->item(m_currentPage)) {
         ui->thumbnailList->scrollToItem(item, QAbstractItemView::PositionAtCenter);
     }
